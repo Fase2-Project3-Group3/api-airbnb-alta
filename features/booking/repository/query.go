@@ -27,9 +27,17 @@ func (repo *bookingRepository) Create(input booking.Core) error {
 	if tx1.Error != nil {
 		return tx1.Error
 	}
+
 	input.PricePerNight = properties.PricePerNight
 	// input.GrossAmount = properties.PricePerNight
 	input.BookingStatus = "Complete_payment"
+
+	// kalkuasi jumlah har menginap
+	stayDay := input.CheckoutDate.Sub(input.CheckinDate)
+	// kalkulasi gross_amout
+	input.GrossAmount = float64(stayDay.Hours()/24) * properties.PricePerNight
+
+	fmt.Println("\n\nIsi input ", input)
 
 	dataGorm := fromCore(input)
 	tx := repo.db.Create(&dataGorm)
@@ -38,19 +46,39 @@ func (repo *bookingRepository) Create(input booking.Core) error {
 	}
 
 	if tx.RowsAffected == 0 {
+		fmt.Println("Failed Create Data Booking. Row Affected ", tx.RowsAffected)
 		return errors.New("failed create data")
 	}
 
-	var id int
-	ty := repo.db.Raw("SELECT LAST_INSERT_ID()").Scan(&id)
-	if ty.Error != nil {
-		return errors.New("failed create data")
-	}
+	fmt.Println("\n\n\ncreate Affected ", tx.RowsAffected)
 
-	ta := repo.db.Exec("UPDATE bookings SET gross_amount = (SELECT DATEDIFF(checkout_date, checkin_date) *price_per_night) WHERE id = ?", id)
-	if ta.Error != nil {
-		return errors.New("failed create data")
-	}
+	fmt.Println("\n\nHasil insert booking ", dataGorm)
+
+	// var id int
+	// ty := repo.db.Raw("SELECT LAST_INSERT_ID()").Scan(&id)
+	// if ty.Error != nil {
+	// 	return errors.New("failed create data")
+	// }
+
+	// if ty.RowsAffected == 0 {
+	// 	fmt.Println("Failed select last insert. Row Affected ", ty.RowsAffected)
+	// 	return errors.New("failed create data")
+	// }
+
+	// fmt.Println("Gross Row Affected ", ty.RowsAffected)
+
+	// ta := repo.db.Exec("UPDATE bookings SET gross_amount = (SELECT DATEDIFF(checkout_date, checkin_date) *price_per_night) WHERE id = ?", id)
+	// if ta.Error != nil {
+	// 	return errors.New("failed create data")
+	// }
+
+	// if ta.RowsAffected == 0 {
+	// 	fmt.Println("Failed update gross ammount. Row Affected ", ta.RowsAffected)
+	// 	return errors.New("failed create data")
+	// }
+
+	// fmt.Println("Gross Row Affected ", ta.RowsAffected)
+
 	return nil
 
 	// var properties Property
